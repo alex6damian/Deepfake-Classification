@@ -5,6 +5,7 @@ from PIL import Image
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
 def load_data(file):
+    print(f"loading {file}")
     # read CSV file
     dataFrame = pd.read_csv(f'{file}.csv')
 
@@ -44,7 +45,7 @@ def augment_data(images, labels):
         fill_mode='nearest'
     )
 
-    return augmented_data.flow(images, labels, batch_size=64, shuffle=True)
+    return augmented_data.flow(images, labels, batch_size=64)
 
 def CNN():
     model = tf.keras.models.Sequential([
@@ -61,9 +62,6 @@ def CNN():
 
         # third convolutional layer
         tf.keras.layers.Conv2D(128, (3, 3), activation='relu'),
-        tf.keras.layers.MaxPooling2D((2, 2)),
-
-        tf.keras.layers.Conv2D(256, (3, 3), activation='relu'),
         tf.keras.layers.MaxPooling2D((2, 2)),
 
         # flatten the output
@@ -112,8 +110,8 @@ if __name__ == "__main__":
     model.fit(train_data_generator,
               validation_data=(val_images, val_labels),
               epochs=20,
-              callbacks = callbacks,
-              verbose = 1)
+              callbacks = callbacks
+              )
     
     # save predictions
     predictions = model.predict(test_images)
@@ -129,3 +127,7 @@ if __name__ == "__main__":
 
     # save to csv
     output_dataFrame.to_csv("predictions.csv", index=False)
+
+'''
+TODO: download validation again
+'''
