@@ -1,10 +1,6 @@
 *.pyc
 __pycache__/
 .env
-data/
-train/
-venv/
-test/
 *.pkl
 *.h5
 *.pth
