@@ -1,5 +1,6 @@
 import tensorflow as tf
 import pandas as pd
+from datetime import datetime
 import csv
 import sys
 import os
@@ -60,22 +61,22 @@ def CNN():
 
     model = tf.keras.models.Sequential([
         # first convolutional layer
-        tf.keras.layers.Conv2D(filters=64, kernel_size=kernel_size, activation='relu', input_shape=input_shape),
+        tf.keras.layers.Conv2D(filters=32, kernel_size=kernel_size, activation='relu', input_shape=input_shape),
         tf.keras.layers.MaxPooling2D(pool_size=pool_size),
 
-        tf.keras.layers.Conv2D(filters=128, kernel_size=kernel_size, activation='relu'),
+        tf.keras.layers.Conv2D(filters=64, kernel_size=kernel_size, activation='relu'),
         tf.keras.layers.MaxPooling2D(pool_size=pool_size),
 
         # second convolutional layer
-        tf.keras.layers.Conv2D(filters=256, kernel_size=kernel_size, activation='relu'),
+        tf.keras.layers.Conv2D(filters=128, kernel_size=kernel_size, activation='relu'),
         tf.keras.layers.MaxPooling2D(pool_size=pool_size),
 
         # third convolutional layer
-        tf.keras.layers.Conv2D(filters=512, kernel_size=kernel_size, activation='relu'),
+        tf.keras.layers.Conv2D(filters=256, kernel_size=kernel_size, activation='relu'),
         tf.keras.layers.MaxPooling2D(pool_size=pool_size),
 
         # flatten the output
-        tf.keras.layers.Flatten(),
+        tf.keras.layers.Flatten(), # transform into 1D vector
         tf.keras.layers.Dropout(0.5), # dropout layer to prevent overfitting
         tf.keras.layers.Dense(256, activation='relu'), # fully connected layer with 256 neurons, relu activated
         tf.keras.layers.Dropout(0.5), # another dropout layer
@@ -99,9 +100,45 @@ def generate_confusion_matrix(real, prediction, names, number):
     plt.ylabel("Real labels")
     plt.xlabel("Predicted labels")
     plt.tight_layout()
-    plt.savefig(f"reports/confusion_matrix{number}.png")
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    plt.savefig(f"reports/confusion_matrix{number}-{timestamp}.png")
 
     return matrix
+
+def label_4_augment(images, labels, times=3):
+    # only augmenting label 4 images
+    label_indices = np.where(labels == 4)[0]
+    label_images = images[label_indices]
+
+    # augmentation generator
+    datagen = ImageDataGenerator(
+        rotation_range=20,
+        height_shift_range=0.2,
+        width_shift_range=0.2,
+        zoom_range=0.2,
+        shear_range=0.2,
+        horizontal_flip=True,
+        fill_mode='nearest'
+    )
+
+    augmented_images = []
+    augmented_labels = []
+
+    # generating augment_count * class4 images
+    for _ in range(times):
+        for img in label_images:
+            img = img.reshape((1,) + img.shape)  # reshape pentru flow
+            for batch in datagen.flow(img, batch_size=1):
+                augmented_images.append(batch[0])
+                augmented_labels.append(4)
+                break  # one image per loop
+
+    # 
+    images_extended = np.concatenate([images, np.array(augmented_images)], axis=0)
+    labels_extended = np.concatenate([labels, np.array(augmented_labels)], axis=0)
+
+    return images_extended, labels_extended
+
 
 
 if __name__ == "__main__":
@@ -115,6 +152,7 @@ if __name__ == "__main__":
 
     # load data
     train_images, train_labels = load_data("train")
+    # train_images, train_labels = label_4_augment(train_images, train_labels)
     val_images, val_labels = load_data("validation")
     test_images = load_data("test")
     
