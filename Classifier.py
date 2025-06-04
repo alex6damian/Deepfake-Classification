@@ -163,7 +163,7 @@ if __name__ == "__main__":
     train_data_generator = augment_data(train_images, train_labels)
     
     callbacks = [
-        tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=7, restore_best_weights=True),
+        tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True),
         tf.keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=3),
         tf.keras.callbacks.ModelCheckpoint('best_model.keras', save_best_only=True)
     ]
