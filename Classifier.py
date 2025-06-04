@@ -91,11 +91,13 @@ if __name__ == "__main__":
     # fit the model 
     model.fit(train_images, train_labels,
               validation_data=(val_images, val_labels),
-              epochs=10, batch_size=32)
+              epochs=10, batch_size=32,
+              callbacks = [tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=3)])
 
     model.fit(train_data_generator,
               validation_data=(val_images, val_labels),
-              epochs=10, batch_size=32)
+              epochs=10, batch_size=32,
+              callbacks = [tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=3)])
     
     # save predictions
     predictions = model.predict(test_images)
