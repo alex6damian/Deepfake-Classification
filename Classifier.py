@@ -1,6 +1,12 @@
 import tensorflow as tf
 import pandas as pd
+import csv
+import sys
+import os
 import numpy as np
+from sklearn.metrics import classification_report, confusion_matrix
+import matplotlib.pyplot as plt
+import seaborn as sns
 from PIL import Image
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
@@ -45,29 +51,33 @@ def augment_data(images, labels):
         fill_mode='nearest'
     )
 
-    return augmented_data.flow(images, labels, batch_size=64)
+    return augmented_data.flow(images, labels, batch_size=512)
 
 def CNN():
+    input_shape = (100, 100, 3) # 100x100 RGB image
+    kernel_size = (3, 3) # filter size
+    pool_size = (2, 2) # pool size
+
     model = tf.keras.models.Sequential([
         # first convolutional layer
-        tf.keras.layers.Conv2D(16, (3, 3), activation='relu', input_shape=(100, 100, 3)),
-        tf.keras.layers.MaxPooling2D((2, 2)),
+        tf.keras.layers.Conv2D(filters=64, kernel_size=kernel_size, activation='relu', input_shape=input_shape),
+        tf.keras.layers.MaxPooling2D(pool_size=pool_size),
 
-        tf.keras.layers.Conv2D(32, (3, 3), activation='relu'),
-        tf.keras.layers.MaxPooling2D((2, 2)),
+        tf.keras.layers.Conv2D(filters=128, kernel_size=kernel_size, activation='relu'),
+        tf.keras.layers.MaxPooling2D(pool_size=pool_size),
 
         # second convolutional layer
-        tf.keras.layers.Conv2D(64, (3, 3), activation='relu'),
-        tf.keras.layers.MaxPooling2D((2, 2)),
+        tf.keras.layers.Conv2D(filters=256, kernel_size=kernel_size, activation='relu'),
+        tf.keras.layers.MaxPooling2D(pool_size=pool_size),
 
         # third convolutional layer
-        tf.keras.layers.Conv2D(128, (3, 3), activation='relu'),
-        tf.keras.layers.MaxPooling2D((2, 2)),
+        tf.keras.layers.Conv2D(filters=512, kernel_size=kernel_size, activation='relu'),
+        tf.keras.layers.MaxPooling2D(pool_size=pool_size),
 
         # flatten the output
         tf.keras.layers.Flatten(),
         tf.keras.layers.Dropout(0.5), # dropout layer to prevent overfitting
-        tf.keras.layers.Dense(128, activation='relu'),
+        tf.keras.layers.Dense(256, activation='relu'), # fully connected layer with 256 neurons, relu activated
         tf.keras.layers.Dropout(0.5), # another dropout layer
         tf.keras.layers.Dense(5, activation='softmax') # 5 classes (0-4 labels)
     ])
@@ -81,8 +91,28 @@ def CNN():
     model.summary()
     return model
 
+def generate_confusion_matrix(real, prediction, names, number):
+    matrix = confusion_matrix(real, prediction)
+    plt.figure(figsize=(12, 12))
+    sns.heatmap(matrix, annot=True, fmt='d', cmap='Purples', xticklabels=names, yticklabels=names)
+    plt.title("Confusion Matrix")
+    plt.ylabel("Real labels")
+    plt.xlabel("Predicted labels")
+    plt.tight_layout()
+    plt.savefig(f"reports/confusion_matrix{number}.png")
+
+    return matrix
+
 
 if __name__ == "__main__":
+
+    if len(sys.argv) != 3:
+        print("Example: python3 Classifier.py <epochs> <batch_size>")
+        sys.exit(1)
+    
+    epochs = int(sys.argv[1])
+    batch_size = int(sys.argv[2])
+
     # load data
     train_images, train_labels = load_data("train")
     val_images, val_labels = load_data("validation")
@@ -93,26 +123,54 @@ if __name__ == "__main__":
 
     # augment training data
     train_data_generator = augment_data(train_images, train_labels)
-
-    # fit the model 
-    # model.fit(train_images, train_labels,
-    #           validation_data=(val_images, val_labels),
-    #           epochs=20, batch_size=64,
-    #           callbacks = [tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=3)])
-
+    
     callbacks = [
-        tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True),
+        tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=7, restore_best_weights=True),
         tf.keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=3),
         tf.keras.callbacks.ModelCheckpoint('best_model.keras', save_best_only=True)
     ]
 
-    # augmented training data
-    model.fit(train_data_generator,
+    # train the model 
+    model.fit(train_images, train_labels,
               validation_data=(val_images, val_labels),
-              epochs=20,
-              callbacks = callbacks
-              )
-    
+              epochs=epochs, batch_size=batch_size,
+              callbacks = callbacks)
+
+    # augmented training data
+    # model.fit(train_data_generator,
+    #           validation_data=(val_images, val_labels),
+    #           epochs=50, batch_size=512,
+    #           callbacks = callbacks
+    #           )
+
+    # evaluate the model
+    validation_loss, validation_accuracy = model.evaluate(val_images, val_labels, verbose=0)
+
+    print(f"Accuracy: {validation_accuracy}, Loss: {validation_loss}")
+
+    # creating reports folder if not exists
+    os.makedirs("reports", exist_ok=True)
+    reports_csv = "reports/reports.csv"
+    file_exists = os.path.isfile(reports_csv)
+
+    with open(reports_csv, mode="a", newline="") as file:
+        writer = csv.writer(file)
+
+        # create the header
+        if not file_exists:
+            writer.writerow(["Epochs", "Batch_Size", "Accuracy", "Loss"])
+        
+        # write the results
+        writer.writerow([epochs, batch_size, round(validation_accuracy, 4), round(validation_loss, 4)])
+
+    # label names
+    names = ['0', '1', '2', '3', '4']
+
+    # predict validation data
+    val_predictions = model.predict(val_images)
+    val_label_predictions = np.argmax(val_predictions, axis=1)
+    matrix = generate_confusion_matrix(val_labels, val_label_predictions, names, number=(str(epochs)+"-"+str(batch_size)))
+
     # save predictions
     predictions = model.predict(test_images)
 

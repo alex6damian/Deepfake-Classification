@@ -8,3 +8,4 @@ venv/*
 *.h5
 *.pth
 ssh*
+best_model.keras*
