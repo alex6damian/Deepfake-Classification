@@ -44,12 +44,15 @@ def augment_data(images, labels):
         fill_mode='nearest'
     )
 
-    return augmented_data.flow(images, labels, batch_size=32)
+    return augmented_data.flow(images, labels, batch_size=64, shuffle=True)
 
 def CNN():
     model = tf.keras.models.Sequential([
         # first convolutional layer
-        tf.keras.layers.Conv2D(32, (3, 3), activation='relu', input_shape=(100, 100, 3)),
+        tf.keras.layers.Conv2D(16, (3, 3), activation='relu', input_shape=(100, 100, 3)),
+        tf.keras.layers.MaxPooling2D((2, 2)),
+
+        tf.keras.layers.Conv2D(32, (3, 3), activation='relu'),
         tf.keras.layers.MaxPooling2D((2, 2)),
 
         # second convolutional layer
@@ -60,9 +63,14 @@ def CNN():
         tf.keras.layers.Conv2D(128, (3, 3), activation='relu'),
         tf.keras.layers.MaxPooling2D((2, 2)),
 
+        tf.keras.layers.Conv2D(256, (3, 3), activation='relu'),
+        tf.keras.layers.MaxPooling2D((2, 2)),
+
         # flatten the output
         tf.keras.layers.Flatten(),
+        tf.keras.layers.Dropout(0.5), # dropout layer to prevent overfitting
         tf.keras.layers.Dense(128, activation='relu'),
+        tf.keras.layers.Dropout(0.5), # another dropout layer
         tf.keras.layers.Dense(5, activation='softmax') # 5 classes (0-4 labels)
     ])
 
@@ -89,15 +97,23 @@ if __name__ == "__main__":
     train_data_generator = augment_data(train_images, train_labels)
 
     # fit the model 
-    model.fit(train_images, train_labels,
-              validation_data=(val_images, val_labels),
-              epochs=10, batch_size=32,
-              callbacks = [tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=3)])
+    # model.fit(train_images, train_labels,
+    #           validation_data=(val_images, val_labels),
+    #           epochs=20, batch_size=64,
+    #           callbacks = [tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=3)])
 
+    callbacks = [
+        tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True),
+        tf.keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=3),
+        tf.keras.callbacks.ModelCheckpoint('best_model.h5', save_best_only=True)
+    ]
+
+    # augmented training data
     model.fit(train_data_generator,
               validation_data=(val_images, val_labels),
-              epochs=10, batch_size=32,
-              callbacks = [tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=3)])
+              epochs=20,
+              callbacks = callbacks,
+              verbose = 1)
     
     # save predictions
     predictions = model.predict(test_images)
