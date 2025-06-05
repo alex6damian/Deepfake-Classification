@@ -4,6 +4,8 @@ from datetime import datetime
 import csv
 import sys
 import os
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.regularizers import l2
 import numpy as np
 from sklearn.metrics import classification_report, confusion_matrix
 import matplotlib.pyplot as plt
@@ -76,16 +78,18 @@ def CNN():
         # flatten the output
         tf.keras.layers.Flatten(), # transform into 1D vector
         tf.keras.layers.Dropout(0.3), # dropout layer to prevent overfitting
-        tf.keras.layers.Dense(256, activation='relu'), # fully connected layer with 256 neurons, relu activated
+        tf.keras.layers.Dense(128, activation='relu', kernel_regularizer=l2(0.001)), # fully connected layer with 128 neurals, relu activated
         tf.keras.layers.Dropout(0.3), # another dropout layer
         tf.keras.layers.Dense(5, activation='softmax') # 5 classes (0-4 labels)
     ])
 
+
+
     # compile the model
-    model.compile(optimizer='adam', 
-                  loss='sparse_categorical_crossentropy', # for int labels
-                  metrics=['accuracy'])
-    
+    model.compile(optimizer=Adam(learning_rate=0.0001),  # fine tuning
+              loss='sparse_categorical_crossentropy',
+              metrics=['accuracy'])
+
     # return the model summary
     model.summary()
     return model
@@ -136,7 +140,7 @@ if __name__ == "__main__":
     model.fit(train_images, train_labels,
               validation_data=(val_images, val_labels),
               epochs=epochs, batch_size=batch_size,
-            #   class_weight = {0: 1.0, 1: 1.3, 2: 1.0, 3: 1.0, 4: 2.5},
+            #   class_weight = {0: 1.0, 1: 1.0, 2: 1.0, 3: 1.0, 4: 3.0},
             #   callbacks = callbacks
               )
 
