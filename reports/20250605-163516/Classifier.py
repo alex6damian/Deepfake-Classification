@@ -58,9 +58,6 @@ def CNN():
         tf.keras.layers.BatchNormalization(),
         tf.keras.layers.MaxPooling2D(pool_size=pool_size),
 
-        # third convolutional layer
-        tf.keras.layers.Conv2D(filters=512, kernel_size=kernel_size, activation='relu'),
-        tf.keras.layers.MaxPooling2D(pool_size=pool_size),
 
         # flatten the output
         tf.keras.layers.Flatten(),
@@ -90,14 +87,14 @@ def generate_confusion_matrix(real, prediction, names, precision):
     plt.tight_layout()
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
 
-    # folder creation
+    # Create a new folder with the timestamp
     folder_name = f"reports/{timestamp}"
     os.makedirs(folder_name, exist_ok=True)
 
-    # save the matrix
+    # Save the confusion matrix figure
     plt.savefig(f"{folder_name}/confusion_matrix{round(precision,4)}.png")
 
-    # save code configuration
+    # Save the current code to the folder
     with open(__file__, 'r') as file:
         code_content = file.read()
     with open(f"{folder_name}/Classifier.py", 'w') as backup_file:
@@ -106,7 +103,6 @@ def generate_confusion_matrix(real, prediction, names, precision):
 
 
 if __name__ == "__main__":
-
 
     if len(sys.argv) != 3:
         print("Example: python3 Classifier.py <epochs> <batch_size>")

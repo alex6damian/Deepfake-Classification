@@ -22,15 +22,15 @@ np.random.seed(42)  # Pentru reproducibilitate
 selected_label_4 = label_4_images.sample(n=2500, random_state=42).copy()
 selected_label_4['label'] = 1
 
-# Pentru alte labeluri → label 0 (625 din fiecare label: 0, 2, 3)
+# Pentru alte labeluri → label 0 (700 din fiecare label: 0, 2, 3)
 selected_others_list = []
 
 for label in [0, 1, 2, 3]:
     label_images = other_labels_images[other_labels_images['label'] == label]
     print(f"Imagini disponibile cu label {label}: {len(label_images)}")
     
-    if len(label_images) >= 625:
-        selected = label_images.sample(n=625, random_state=42).copy()
+    if len(label_images) >= 725:
+        selected = label_images.sample(n=725, random_state=42).copy()
     else:
         print(f"ATENȚIE: Doar {len(label_images)} imagini cu label {label}, se iau toate")
         selected = label_images.copy()

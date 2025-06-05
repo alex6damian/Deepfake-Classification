@@ -107,7 +107,6 @@ def generate_confusion_matrix(real, prediction, names, precision):
 
 if __name__ == "__main__":
 
-
     if len(sys.argv) != 3:
         print("Example: python3 Classifier.py <epochs> <batch_size>")
         sys.exit(1)

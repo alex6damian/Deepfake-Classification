@@ -47,7 +47,7 @@ def CNN():
 
     model = tf.keras.models.Sequential([
         # first convolutional layer
-        tf.keras.layers.Conv2D(filters=64, kernel_size=kernel_size, activation='relu', input_shape=input_shape),
+        tf.keras.layers.Conv2D(filters=64, kernel_size=(5, 5), activation='relu', input_shape=input_shape),
         tf.keras.layers.MaxPooling2D(pool_size=pool_size),
 
         tf.keras.layers.Conv2D(filters=128, kernel_size=kernel_size, activation='relu'),
@@ -64,9 +64,9 @@ def CNN():
 
         # flatten the output
         tf.keras.layers.Flatten(),
-        tf.keras.layers.Dropout(0.3), # dropout layer to prevent overfitting
+        tf.keras.layers.Dropout(0.2), # dropout layer to prevent overfitting
         tf.keras.layers.Dense(256, activation='relu'), # fully connected layer with 256 neurons, relu activated
-        tf.keras.layers.Dropout(0.3), # another dropout layer
+        tf.keras.layers.Dropout(0.2), # another dropout layer
         tf.keras.layers.Dense(5, activation='softmax') # 5 classes (0-4 labels)
     ])
 
@@ -90,14 +90,14 @@ def generate_confusion_matrix(real, prediction, names, precision):
     plt.tight_layout()
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
 
-    # folder creation
+    # Create a new folder with the timestamp
     folder_name = f"reports/{timestamp}"
     os.makedirs(folder_name, exist_ok=True)
 
-    # save the matrix
+    # Save the confusion matrix figure
     plt.savefig(f"{folder_name}/confusion_matrix{round(precision,4)}.png")
 
-    # save code configuration
+    # Save the current code to the folder
     with open(__file__, 'r') as file:
         code_content = file.read()
     with open(f"{folder_name}/Classifier.py", 'w') as backup_file:
@@ -106,7 +106,6 @@ def generate_confusion_matrix(real, prediction, names, precision):
 
 
 if __name__ == "__main__":
-
 
     if len(sys.argv) != 3:
         print("Example: python3 Classifier.py <epochs> <batch_size>")
