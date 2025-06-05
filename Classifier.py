@@ -40,19 +40,16 @@ def load_data(file):
     # convert lists to numpy arrays
     return np.array(images) if file == "test" else (images, labels)
 
-def augment_data(images, labels):
+def augment_data(images, labels, batch_size=64):
     # create a data augmentation layer
     augmented_data = ImageDataGenerator(
-        rotation_range=20,
-        height_shift_range=0.2,
-        width_shift_range=0.2,
-        zoom_range=0.2,
-        shear_range=0.2,
-        horizontal_flip=True,
+        # brightness_range=[0.9, 1.1],
+        rotation_range=5,
+        # horizontal_flip=True,
         fill_mode='nearest'
     )
 
-    return augmented_data.flow(images, labels, batch_size=512)
+    return augmented_data.flow(images, labels, batch_size=batch_size)
 
 def CNN():
     input_shape = (100, 100, 3) # 100x100 RGB image
@@ -61,25 +58,26 @@ def CNN():
 
     model = tf.keras.models.Sequential([
         # first convolutional layer
-        tf.keras.layers.Conv2D(filters=32, kernel_size=kernel_size, activation='relu', input_shape=input_shape),
-        tf.keras.layers.MaxPooling2D(pool_size=pool_size),
-
-        tf.keras.layers.Conv2D(filters=64, kernel_size=kernel_size, activation='relu'),
+        tf.keras.layers.Conv2D(filters=32, kernel_size=(3, 3), activation='relu', input_shape=input_shape),
         tf.keras.layers.MaxPooling2D(pool_size=pool_size),
 
         # second convolutional layer
-        tf.keras.layers.Conv2D(filters=128, kernel_size=kernel_size, activation='relu'),
+        tf.keras.layers.Conv2D(filters=64, kernel_size=(3, 3), activation='relu'),
+        tf.keras.layers.MaxPooling2D(pool_size=pool_size),
+
+        # second convolutional layer
+        tf.keras.layers.Conv2D(filters=128, kernel_size=(3, 3), activation='relu'),
         tf.keras.layers.MaxPooling2D(pool_size=pool_size),
 
         # third convolutional layer
-        tf.keras.layers.Conv2D(filters=256, kernel_size=kernel_size, activation='relu'),
+        tf.keras.layers.Conv2D(filters=256, kernel_size=(3, 3), activation='relu'),
         tf.keras.layers.MaxPooling2D(pool_size=pool_size),
 
         # flatten the output
         tf.keras.layers.Flatten(), # transform into 1D vector
-        tf.keras.layers.Dropout(0.5), # dropout layer to prevent overfitting
+        tf.keras.layers.Dropout(0.3), # dropout layer to prevent overfitting
         tf.keras.layers.Dense(256, activation='relu'), # fully connected layer with 256 neurons, relu activated
-        tf.keras.layers.Dropout(0.5), # another dropout layer
+        tf.keras.layers.Dropout(0.3), # another dropout layer
         tf.keras.layers.Dense(5, activation='softmax') # 5 classes (0-4 labels)
     ])
 
@@ -105,54 +103,18 @@ def generate_confusion_matrix(real, prediction, names, number):
 
     return matrix
 
-def label_4_augment(images, labels, times=3):
-    # only augmenting label 4 images
-    label_indices = np.where(labels == 4)[0]
-    label_images = images[label_indices]
-
-    # augmentation generator
-    datagen = ImageDataGenerator(
-        rotation_range=20,
-        height_shift_range=0.2,
-        width_shift_range=0.2,
-        zoom_range=0.2,
-        shear_range=0.2,
-        horizontal_flip=True,
-        fill_mode='nearest'
-    )
-
-    augmented_images = []
-    augmented_labels = []
-
-    # generating augment_count * class4 images
-    for _ in range(times):
-        for img in label_images:
-            img = img.reshape((1,) + img.shape)  # reshape pentru flow
-            for batch in datagen.flow(img, batch_size=1):
-                augmented_images.append(batch[0])
-                augmented_labels.append(4)
-                break  # one image per loop
-
-    # 
-    images_extended = np.concatenate([images, np.array(augmented_images)], axis=0)
-    labels_extended = np.concatenate([labels, np.array(augmented_labels)], axis=0)
-
-    return images_extended, labels_extended
-
-
-
 if __name__ == "__main__":
 
     if len(sys.argv) != 3:
         print("Example: python3 Classifier.py <epochs> <batch_size>")
         sys.exit(1)
     
+    # save epochs and batch_size params
     epochs = int(sys.argv[1])
     batch_size = int(sys.argv[2])
 
     # load data
     train_images, train_labels = load_data("train")
-    # train_images, train_labels = label_4_augment(train_images, train_labels)
     val_images, val_labels = load_data("validation")
     test_images = load_data("test")
     
@@ -160,10 +122,11 @@ if __name__ == "__main__":
     model = CNN()
 
     # augment training data
-    train_data_generator = augment_data(train_images, train_labels)
+    # train_data_generator = augment_data(train_images, train_labels, batch_size=batch_size)
     
+    # callbacks setup
     callbacks = [
-        tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True),
+        tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True),
         tf.keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=3),
         tf.keras.callbacks.ModelCheckpoint('best_model.keras', save_best_only=True)
     ]
@@ -172,18 +135,20 @@ if __name__ == "__main__":
     model.fit(train_images, train_labels,
               validation_data=(val_images, val_labels),
               epochs=epochs, batch_size=batch_size,
+              class_weight = {0: 1.0, 1: 1.3, 2: 1.0, 3: 1.0, 4: 2.5},
               callbacks = callbacks)
 
     # augmented training data
     # model.fit(train_data_generator,
     #           validation_data=(val_images, val_labels),
-    #           epochs=50, batch_size=512,
+    #           epochs=epochs, batch_size=batch_size,
     #           callbacks = callbacks
     #           )
 
     # evaluate the model
     validation_loss, validation_accuracy = model.evaluate(val_images, val_labels, verbose=0)
 
+    # print the output
     print(f"Accuracy: {validation_accuracy}, Loss: {validation_loss}")
 
     # creating reports folder if not exists
@@ -191,6 +156,7 @@ if __name__ == "__main__":
     reports_csv = "reports/reports.csv"
     file_exists = os.path.isfile(reports_csv)
 
+    # write the csv file
     with open(reports_csv, mode="a", newline="") as file:
         writer = csv.writer(file)
 
