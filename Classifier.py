@@ -91,6 +91,7 @@ def CNN():
     return model
 
 def generate_confusion_matrix(real, prediction, names, number):
+    # generate a confusion matrix
     matrix = confusion_matrix(real, prediction)
     plt.figure(figsize=(12, 12))
     sns.heatmap(matrix, annot=True, fmt='d', cmap='Purples', xticklabels=names, yticklabels=names)
@@ -135,8 +136,9 @@ if __name__ == "__main__":
     model.fit(train_images, train_labels,
               validation_data=(val_images, val_labels),
               epochs=epochs, batch_size=batch_size,
-              class_weight = {0: 1.0, 1: 1.3, 2: 1.0, 3: 1.0, 4: 2.5},
-              callbacks = callbacks)
+            #   class_weight = {0: 1.0, 1: 1.3, 2: 1.0, 3: 1.0, 4: 2.5},
+            #   callbacks = callbacks
+              )
 
     # augmented training data
     # model.fit(train_data_generator,
@@ -191,5 +193,9 @@ if __name__ == "__main__":
     output_dataFrame.to_csv("predictions.csv", index=False)
 
 '''
-TODO: download validation again
+TODO: 
+BATCH NORMALIZATION pe fiecare layer, pornind de la mai multe filtre pentru detalii fine
+ZERO AUGMENTARE
+EPOCI MICI, BATCH_SIZE 16
+GlobalAveragePooling2D() in loc de flatten+dropout
 '''
