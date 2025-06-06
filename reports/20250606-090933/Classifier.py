@@ -66,9 +66,9 @@ def CNN():
 
         # flatten the output
         tf.keras.layers.Flatten(),
-        tf.keras.layers.Dropout(0.5), # dropout layer to prevent overfitting
+        tf.keras.layers.Dropout(0.3), # dropout layer to prevent overfitting
         tf.keras.layers.Dense(256, activation='relu'), # fully connected layer with 256 neurons, relu activated
-        tf.keras.layers.Dropout(0.5), # another dropout layer
+        tf.keras.layers.Dropout(0.3), # another dropout layer
         tf.keras.layers.Dense(5, activation='softmax') # 5 classes (0-4 labels)
     ])
 

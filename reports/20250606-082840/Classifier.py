@@ -66,9 +66,9 @@ def CNN():
 
         # flatten the output
         tf.keras.layers.Flatten(),
-        tf.keras.layers.Dropout(0.5), # dropout layer to prevent overfitting
+        tf.keras.layers.Dropout(0.3), # dropout layer to prevent overfitting
         tf.keras.layers.Dense(256, activation='relu'), # fully connected layer with 256 neurons, relu activated
-        tf.keras.layers.Dropout(0.5), # another dropout layer
+        tf.keras.layers.Dropout(0.3), # another dropout layer
         tf.keras.layers.Dense(5, activation='softmax') # 5 classes (0-4 labels)
     ])
 
@@ -86,7 +86,7 @@ def CNN_train(train_data, validation_data, epochs, batch_size, class_weight=None
     model = CNN()
 
     callbacks = [
-        tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True), # early stopping
+        tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=7, restore_best_weights=True), # early stopping
         tf.keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=3), # reduce learning rate on plateau
         tf.keras.callbacks.ModelCheckpoint('best_model.keras', save_best_only=True) # saving the best model
     ]
@@ -123,6 +123,7 @@ def create_report(trained_model, validation_data):
         writer.writerow([epochs, batch_size, round(validation_accuracy, 4), round(validation_loss, 4)])
     
     return validation_accuracy
+
 
 def generate_confusion_matrix(real, prediction, names, precision):
     # generate a confusion matrix
@@ -174,6 +175,7 @@ def make_predictions(trained_model, validation_data, validation_accuracy):
 
     # save to csv
     output_dataFrame.to_csv("predictions.csv", index=False)
+
 
 if __name__ == "__main__":
 

@@ -66,9 +66,9 @@ def CNN():
 
         # flatten the output
         tf.keras.layers.Flatten(),
-        tf.keras.layers.Dropout(0.5), # dropout layer to prevent overfitting
+        tf.keras.layers.Dropout(0.3), # dropout layer to prevent overfitting
         tf.keras.layers.Dense(256, activation='relu'), # fully connected layer with 256 neurons, relu activated
-        tf.keras.layers.Dropout(0.5), # another dropout layer
+        tf.keras.layers.Dropout(0.3), # another dropout layer
         tf.keras.layers.Dense(5, activation='softmax') # 5 classes (0-4 labels)
     ])
 
@@ -81,17 +81,32 @@ def CNN():
     model.summary()
     return model
 
+def augment_data():
+    train_datagen = ImageDataGenerator(
+        rotation_range=10,
+        width_shift_range=0.1,
+        height_shift_range=0.1,
+        horizontal_flip=True,
+        zoom_range=0.1,
+        shear_range=0.1,
+        fill_mode='nearest'
+    )
+    return train_datagen
+
+
 def CNN_train(train_data, validation_data, epochs, batch_size, class_weight=None):
     # train the CNN model
     model = CNN()
 
+    train_generator = augment_data.flow(train_data[0], train_data[1], batch_size=batch_size)
+
     callbacks = [
-        tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True), # early stopping
+        tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=7, restore_best_weights=True), # early stopping
         tf.keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=3), # reduce learning rate on plateau
         tf.keras.callbacks.ModelCheckpoint('best_model.keras', save_best_only=True) # saving the best model
     ]
 
-    model.fit(train_data[0], train_data[1],
+    model.fit(train_generator,
             validation_data=validation_data,
             epochs=epochs, batch_size=batch_size,
             callbacks=callbacks,
@@ -123,6 +138,7 @@ def create_report(trained_model, validation_data):
         writer.writerow([epochs, batch_size, round(validation_accuracy, 4), round(validation_loss, 4)])
     
     return validation_accuracy
+
 
 def generate_confusion_matrix(real, prediction, names, precision):
     # generate a confusion matrix
@@ -175,6 +191,7 @@ def make_predictions(trained_model, validation_data, validation_accuracy):
     # save to csv
     output_dataFrame.to_csv("predictions.csv", index=False)
 
+
 if __name__ == "__main__":
 
 
@@ -195,7 +212,7 @@ if __name__ == "__main__":
     # train the model
     trained_model = CNN_train((train_images, train_labels), validation_data=(val_images, val_labels),
                 epochs=epochs, batch_size=batch_size, 
-                class_weight={0: 1.0, 1: 1.5, 2: 1.0, 3: 1.0, 4: 2.5})
+                class_weight={0: 1.0, 1: 1.2, 2: 1.0, 3: 1.0, 4: 2.5})
 
     # create a report and get the accuracy
     validation_accuracy = create_report(trained_model, (val_images, val_labels))
