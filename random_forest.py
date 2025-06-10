@@ -50,7 +50,7 @@ def RF():
     random_state = seed
     n_jobs = -1 means using all cores
     '''
-    model = RFC(n_estimators=500, max_depth=20, random_state=69, n_jobs=-1) 
+    model = RFC(n_estimators=500, random_state=69, n_jobs=-1) 
     return model
 
 def RF_train(train_data):
